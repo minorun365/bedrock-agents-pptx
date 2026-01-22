@@ -4,34 +4,29 @@ import boto3
 import urllib.request
 from io import BytesIO
 from datetime import datetime
-
-# python-pptxはLambdaレイヤーとして追加する必要あり
 from pptx import Presentation
-from pptx.util import Inches, Pt
 
 
+# Lambdaのメイン関数
 def lambda_handler(event, context):
-    """Bedrock Agentsからのリクエストを処理"""
     print(f"Received event: {json.dumps(event)}")
 
+    # イベントから必要な情報を取り出す
     action_group = event.get("actionGroup", "")
     function_name = event.get("function", "")
     parameters = {p["name"]: p["value"] for p in event.get("parameters", [])}
 
-    # 機能ごとに処理を分岐
+    # 呼び出された機能ごとに処理を分岐
     if function_name == "search-web":
         result = search_web(parameters.get("query", ""))
     elif function_name == "create-pptx":
-        result = create_pptx(
-            title=parameters.get("title", "無題"),
-            content=parameters.get("content", "")
-        )
+        result = create_pptx(parameters.get("title", "無題"), parameters.get("content", ""))
     elif function_name == "send-email":
-        result = send_email(url=parameters.get("url", ""))
+        result = send_email(parameters.get("url", ""))
     else:
         result = {"error": f"Unknown function: {function_name}"}
 
-    # Bedrock Agents用のレスポンス形式
+    # Bedrock Agents用のレスポンス形式で返す
     return {
         "messageVersion": "1.0",
         "response": {
@@ -39,125 +34,82 @@ def lambda_handler(event, context):
             "function": function_name,
             "functionResponse": {
                 "responseBody": {
-                    "TEXT": {
-                        "body": json.dumps(result, ensure_ascii=False)
-                    }
+                    "TEXT": {"body": json.dumps(result, ensure_ascii=False)}
                 }
             }
         }
     }
 
 
+# Web検索する関数
 def search_web(query: str) -> dict:
-    """Tavily APIを使用してWeb検索"""
-    api_key = os.environ.get("TAVILY_API_KEY")
-    if not api_key:
-        return {"error": "TAVILY_API_KEY not set"}
-
-    url = "https://api.tavily.com/search"
+    # リクエストボディを作成
     data = json.dumps({
-        "api_key": api_key,
-        "query": query,
-        "max_results": 5
+        "api_key": os.environ["TAVILY_API_KEY"],
+        "query": query
     }).encode("utf-8")
 
     req = urllib.request.Request(
-        url,
+        "https://api.tavily.com/search",
         data=data,
         headers={"Content-Type": "application/json"}
     )
 
-    try:
-        with urllib.request.urlopen(req, timeout=30) as res:
-            response = json.loads(res.read().decode("utf-8"))
-            # 検索結果を整形
-            results = []
-            for r in response.get("results", []):
-                results.append({
-                    "title": r.get("title", ""),
-                    "url": r.get("url", ""),
-                    "content": r.get("content", "")
-                })
-            return {"query": query, "results": results}
-    except Exception as e:
-        return {"error": str(e)}
+    # Tavily APIを呼び出して結果を整形
+    with urllib.request.urlopen(req, timeout=30) as res:
+        response = json.loads(res.read().decode("utf-8"))
+
+    results = [
+        {"title": r["title"], "url": r["url"], "content": r["content"]}
+        for r in response.get("results", [])
+    ]
+    return {"query": query, "results": results}
 
 
+# パワポ作成する関数
 def create_pptx(title: str, content: str) -> dict:
-    """PowerPointファイルを作成してS3にアップロード"""
-    bucket = os.environ.get("S3_BUCKET")
-    if not bucket:
-        return {"error": "S3_BUCKET not set"}
-
-    # プレゼンテーション作成
     prs = Presentation()
 
-    # タイトルスライド
-    title_slide_layout = prs.slide_layouts[0]
-    slide = prs.slides.add_slide(title_slide_layout)
+    # タイトルスライドを作成
+    slide = prs.slides.add_slide(prs.slide_layouts[0])
     slide.shapes.title.text = title
     slide.placeholders[1].text = f"作成日: {datetime.now().strftime('%Y年%m月%d日')}"
 
-    # コンテンツを\n\nで分割して複数スライド作成
-    content = content.strip()
-    slides_content = content.split('\n\n') if content else []
-
-    for slide_content in slides_content:
-        content_slide_layout = prs.slide_layouts[1]
-        slide = prs.slides.add_slide(content_slide_layout)
-
+    # コンテンツを空行で分割して、各ブロックをスライドにする
+    for slide_content in content.strip().split('\n\n'):
+        if not slide_content:
+            continue
+        slide = prs.slides.add_slide(prs.slide_layouts[1])
         lines = slide_content.split('\n')
-        # 1行目をタイトルに
-        slide.shapes.title.text = lines[0].lstrip('- ').lstrip('# ')
-        # 2行目以降を本文に
+        # 1行目をスライドタイトル、2行目以降を本文にする
+        slide.shapes.title.text = lines[0].lstrip('- #')
         if len(lines) > 1:
-            body = slide.placeholders[1]
-            body.text = '\n'.join([line.lstrip('- ') for line in lines[1:]])
+            slide.placeholders[1].text = '\n'.join(line.lstrip('- ') for line in lines[1:])
 
-    # BytesIOに保存
+    # メモリ上に保存してS3にアップロード
     pptx_buffer = BytesIO()
     prs.save(pptx_buffer)
     pptx_buffer.seek(0)
 
-    # S3にアップロード
     s3 = boto3.client("s3")
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    file_key = f"slide_{timestamp}.pptx"
+    bucket = os.environ["S3_BUCKET"]
+    file_key = f"slide_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pptx"
+    s3.upload_fileobj(pptx_buffer, bucket, file_key)
 
-    try:
-        s3.upload_fileobj(pptx_buffer, bucket, file_key)
-        # 署名付きURLを生成（1時間有効）
-        presigned_url = s3.generate_presigned_url(
-            "get_object",
-            Params={"Bucket": bucket, "Key": file_key},
-            ExpiresIn=3600
-        )
-        return {
-            "message": "PowerPoint created successfully",
-            "s3_key": file_key,
-            "download_url": presigned_url
-        }
-    except Exception as e:
-        return {"error": str(e)}
+    # ダウンロード用の署名付きURLを生成（1時間有効）
+    presigned_url = s3.generate_presigned_url(
+        "get_object",
+        Params={"Bucket": bucket, "Key": file_key},
+        ExpiresIn=3600
+    )
+    return {"message": "PowerPoint created successfully", "download_url": presigned_url}
 
 
+# メール送信する関数
 def send_email(url: str) -> dict:
-    """Amazon SNSでメール送信"""
-    topic_arn = os.environ.get("SNS_TOPIC_ARN")
-    if not topic_arn:
-        return {"error": "SNS_TOPIC_ARN not set"}
-
-    sns = boto3.client("sns")
-
-    try:
-        response = sns.publish(
-            TopicArn=topic_arn,
-            Subject="Bedrock Agentsがパワポを作成しました",
-            Message=f"以下のURLからダウンロードできます：\n{url}"
-        )
-        return {
-            "message": "Email sent successfully",
-            "message_id": response.get("MessageId")
-        }
-    except Exception as e:
-        return {"error": str(e)}
+    response = boto3.client("sns").publish(
+        TopicArn=os.environ["SNS_TOPIC_ARN"],
+        Subject="Bedrock Agentsがパワポを作成しました",
+        Message=f"以下のURLからダウンロードできます：\n{url}"
+    )
+    return {"message": "Email sent successfully", "message_id": response["MessageId"]}
