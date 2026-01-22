@@ -23,7 +23,6 @@ interface Message {
 const getFunctionDisplayName = (functionName: string): string => {
   const functionMap: Record<string, string> = {
     'search-web': 'Web検索',
-    'search-knowledge-base': 'ナレッジベース検索',
     'create-pptx': 'スライド作成',
     'send-email': 'メール送信',
   }
@@ -81,6 +80,7 @@ function App() {
     if (ot.invocationInput) {
       const input = ot.invocationInput as Record<string, unknown>
       const actionGroup = input.actionGroupInvocationInput as Record<string, unknown> | undefined
+      const knowledgeBase = input.knowledgeBaseLookupInput as Record<string, unknown> | undefined
 
       if (actionGroup) {
         const functionName = String(actionGroup.function || '')
@@ -95,6 +95,16 @@ function App() {
         const content = paramSummary
           ? `${displayName}を実行しています… ${paramSummary}`
           : `${displayName}を実行しています…`
+
+        addMessage({ role: 'trace', content })
+      }
+
+      // ナレッジベース検索時の情報を表示
+      if (knowledgeBase) {
+        const query = String(knowledgeBase.text || '')
+        const content = query
+          ? `ナレッジベース検索を実行しています… 「${query}」`
+          : `ナレッジベース検索を実行しています…`
 
         addMessage({ role: 'trace', content })
       }
