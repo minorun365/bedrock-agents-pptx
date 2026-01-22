@@ -180,13 +180,6 @@ function App() {
     setInputText('')
   }
 
-  // 新しい会話を開始
-  const handleNewChat = () => {
-    messagesRef.current = []
-    setRenderKey(prev => prev + 1)
-    sessionIdRef.current = crypto.randomUUID()
-  }
-
   // メッセージのCSSクラスを決定
   const getMessageClassName = (msg: Message): string => {
     const baseClass = msg.role === 'trace' ? 'assistant' : msg.role
@@ -208,14 +201,9 @@ function App() {
           {/* ヘッダー */}
           <header className="header">
             <h1>パワポ作ってメールで送るマン</h1>
-            <div className="header-buttons">
-              <button onClick={handleNewChat} className="new-chat-btn">
-                新しい会話
-              </button>
-              <button onClick={signOut} className="logout-btn">
-                ログアウト
-              </button>
-            </div>
+            <button onClick={signOut} className="logout-btn">
+              ログアウト
+            </button>
           </header>
 
           {/* チャットエリア */}
@@ -224,7 +212,7 @@ function App() {
               {/* ウェルカムメッセージ */}
               {messagesRef.current.length === 0 && (
                 <div className="welcome-message">
-                  <p>Bedrock Agentに質問してみましょう</p>
+                  <p>Bedrock Agentsに資料作成をまかせよう！</p>
                 </div>
               )}
 
@@ -251,9 +239,11 @@ function App() {
 
               <div ref={messagesEndRef} />
             </div>
+          </div>
 
-            {/* 入力フォーム */}
-            <form onSubmit={handleSubmit} className="input-form">
+          {/* 入力フォーム（全幅背景） */}
+          <form onSubmit={handleSubmit} className="input-form">
+            <div className="input-form-inner">
               <input
                 type="text"
                 value={inputText}
@@ -264,8 +254,8 @@ function App() {
               <button type="submit" disabled={isLoading || !inputText.trim()}>
                 送信
               </button>
-            </form>
-          </div>
+            </div>
+          </form>
         </div>
       )}
     </Authenticator>
