@@ -2,8 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { Authenticator } from '@aws-amplify/ui-react'
 import { fetchAuthSession } from 'aws-amplify/auth'
 import {
-  BedrockAgentRuntimeClient,
-  InvokeAgentCommand,
+  BedrockAgentRuntimeClient, InvokeAgentCommand
 } from '@aws-sdk/client-bedrock-agent-runtime'
 import '@aws-amplify/ui-react/styles.css'
 import './App.css'
@@ -38,13 +37,13 @@ const getParameterSummary = (params: Array<{ name: string; value: string }>): st
 
 // メインコンポーネント
 function App() {
-  // State
+  // UIの状態管理
   const [inputText, setInputText] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [streamingText, setStreamingText] = useState('')
   const [renderKey, setRenderKey] = useState(0)
 
-  // Refs
+  // 再レンダリング間で保持する参照
   const sessionIdRef = useRef(crypto.randomUUID())
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesRef = useRef<Message[]>([])
@@ -60,7 +59,7 @@ function App() {
     setRenderKey(prev => prev + 1)
   }, [])
 
-  // Bedrock Agentのトレース情報をパースしてメッセージとして追加
+  // Bedrock Agentsのトレース情報をパースしてメッセージとして追加
   const addTraceMessage = (trace: unknown) => {
     if (!trace || typeof trace !== 'object') return
     const t = trace as Record<string, unknown>
@@ -68,7 +67,7 @@ function App() {
     if (!t.orchestrationTrace) return
     const ot = t.orchestrationTrace as Record<string, unknown>
 
-    // エージェントの思考（rationale）を表示
+    // エージェントの思考を表示
     if (ot.rationale) {
       const rationale = ot.rationale as Record<string, unknown>
       const text = String(rationale.text || '')
@@ -77,7 +76,7 @@ function App() {
       }
     }
 
-    // アクション（Lambda関数）実行時の情報を表示
+    // Lambda実行時の情報を表示
     if (ot.invocationInput) {
       const input = ot.invocationInput as Record<string, unknown>
       const actionGroup = input.actionGroupInvocationInput as Record<string, unknown> | undefined
@@ -101,7 +100,7 @@ function App() {
     }
   }
 
-  // Bedrock Agent を呼び出し
+  // Bedrock Agents を呼び出し
   const invokeAgent = async (prompt: string) => {
     setIsLoading(true)
     setStreamingText('')
@@ -228,7 +227,7 @@ function App() {
             </div>
           </div>
 
-          {/* 入力フォーム（全幅背景） */}
+          {/* 入力フォーム */}
           <form onSubmit={handleSubmit} className="input-form">
             <div className="input-form-inner">
               <input
