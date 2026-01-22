@@ -9,6 +9,6 @@ backend.auth.resources.authenticatedUserIamRole.addToPrincipalPolicy(
   new PolicyStatement({
     effect: Effect.ALLOW,
     actions: ['bedrock:InvokeAgent'],
-    resources: ['arn:aws:bedrock:us-east-1:*:agent-alias/*/*'],
+    resources: ['arn:aws:bedrock:*:*:agent-alias/*/*'],
   })
 );
