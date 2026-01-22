@@ -8,6 +8,8 @@ import './index.css'
 import App from './App.tsx'
 
 Amplify.configure(outputs)
+
+// 認証画面の日本語化
 I18n.putVocabularies(translations)
 I18n.setLanguage('ja')
 

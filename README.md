@@ -22,6 +22,7 @@ mkdir python
 pip3.12 install python-pptx -t python
 
 # パッケージをZIPに圧縮
+sudo apt-get install -y zip unzip
 zip -r layer.zip python
 ```
 
