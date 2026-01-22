@@ -32,19 +32,8 @@ const getFunctionDisplayName = (functionName: string): string => {
 
 // アクションのパラメータから表示用の概要を抽出
 const getParameterSummary = (params: Array<{ name: string; value: string }>): string => {
-  if (!params || params.length === 0) return ''
-
-  const queryParam = params.find(p => p.name === 'query')
-  if (queryParam) {
-    return `「${queryParam.value}」`
-  }
-
-  const firstParam = params[0]
-  if (firstParam) {
-    return `${firstParam.name}: ${firstParam.value}`
-  }
-
-  return ''
+  const query = params?.find(p => p.name === 'query')?.value
+  return query ? `「${query}」` : ''
 }
 
 // メインコンポーネント
