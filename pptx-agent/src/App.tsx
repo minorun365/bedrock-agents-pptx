@@ -17,7 +17,6 @@ const AWS_REGION = import.meta.env.VITE_AWS_REGION || 'us-east-1'
 interface Message {
   role: 'user' | 'assistant' | 'trace'
   content: string
-  traceType?: 'thinking' | 'action'
 }
 
 // Lambda関数名をユーザーフレンドリーな日本語に変換
@@ -66,7 +65,7 @@ function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [renderKey, streamingText])
 
-  // メッセージを追加して再レンダリングをトリガー（useRefでストリーミング中の消失を防止）
+  // メッセージを追加して再レンダリングをトリガー
   const addMessage = useCallback((message: Message) => {
     messagesRef.current.push(message)
     setRenderKey(prev => prev + 1)
@@ -85,7 +84,7 @@ function App() {
       const rationale = ot.rationale as Record<string, unknown>
       const text = String(rationale.text || '')
       if (text) {
-        addMessage({ role: 'trace', content: text, traceType: 'thinking' })
+        addMessage({ role: 'trace', content: text })
       }
     }
 
@@ -99,16 +98,16 @@ function App() {
         const params = actionGroup.parameters as Array<{ name: string; value: string }> | undefined
         const displayName = getFunctionDisplayName(functionName)
 
-        // send-emailはURLが長いためパラメータを表示しない
-        const paramSummary = functionName === 'send-email'
+        // send-email, create-pptxはパラメータを表示しない
+        const paramSummary = (functionName === 'send-email' || functionName === 'create-pptx')
           ? ''
           : (params ? getParameterSummary(params) : '')
 
         const content = paramSummary
-          ? `${displayName}を実行しています ${paramSummary}`
-          : `${displayName}を実行しています`
+          ? `${displayName}を実行しています… ${paramSummary}`
+          : `${displayName}を実行しています…`
 
-        addMessage({ role: 'trace', content, traceType: 'action' })
+        addMessage({ role: 'trace', content })
       }
     }
   }
@@ -183,8 +182,7 @@ function App() {
   // メッセージのCSSクラスを決定
   const getMessageClassName = (msg: Message): string => {
     const baseClass = msg.role === 'trace' ? 'assistant' : msg.role
-    const actionClass = msg.traceType === 'action' ? 'trace-action' : ''
-    return `message ${baseClass} ${actionClass}`.trim()
+    return `message ${baseClass}`
   }
 
   // 「考え中…」表示の条件判定
