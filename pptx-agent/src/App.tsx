@@ -6,11 +6,12 @@ import {
 } from '@aws-sdk/client-bedrock-agent-runtime'
 import '@aws-amplify/ui-react/styles.css'
 import './App.css'
+import outputs from '../amplify_outputs.json'
 
 // 環境変数から設定を取得
 const AGENT_ID = import.meta.env.VITE_AGENT_ID
 const AGENT_ALIAS_ID = import.meta.env.VITE_AGENT_ALIAS_ID
-const AWS_REGION = import.meta.env.VITE_AWS_REGION || 'us-east-1'
+const AWS_REGION = outputs.auth.aws_region
 
 // 型定義
 interface Message {
