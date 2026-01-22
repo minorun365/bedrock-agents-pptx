@@ -41,8 +41,10 @@ zip -r layer.zip python
     - `AmazonBedrockFullAccess` を追加
 - SageMaker Studio
   - Code Editor
-  - Quick start（Launch now）※30秒待機
-  - Open
+  - Create Code Editor space
+    - Name: pptx-agent > Create space
+    - Instance: ml.t3.large > Run space
+  - 30秒待機 > Open
 - コードエディタ
   - 左ペイン「Explorer > Open Folder」
   - `/home/sagemaker-user/` のままOK
@@ -102,10 +104,17 @@ npm install tsx --save-dev
 # Amplifyにデプロイ
 
 - マネコンでAmplifyを開く
-  - 新しいアプリを作成
-  - GitHub > 次へ
-  - GItHubアクセス許可を実施し、前述のリポジトリとmainブランチを選択して次へ
-  - 詳細設定に環境変数を追加
-    - VITE_AGENT_ID
-    - VITE_AGENT_ALIAS_ID
-  - 次へ > 保存してデプロイ
+- 新しいアプリを作成
+- GitHub > 次へ
+- GItHubアクセス許可を実施し、前述のリポジトリとmainブランチを選択して次へ
+- 詳細設定に環境変数を追加
+  - VITE_AGENT_ID
+  - VITE_AGENT_ALIAS_ID
+- 次へ > 保存してデプロイ
+- 8分待機
+
+
+# 動作確認
+
+- 「デプロイされたURLにアクセス」
+- アカウントを作る
