@@ -216,7 +216,9 @@ function App() {
               {/* メッセージ一覧 */}
               {messagesRef.current.map((msg, idx) => (
                 <div key={idx} className={getMessageClassName(msg)}>
-                  <div className="message-content">{msg.content}</div>
+                  <div className={`message-content${msg.role === 'trace' ? ' shimmer' : ''}`}>
+                    {msg.content}
+                  </div>
                 </div>
               ))}
 
@@ -230,7 +232,7 @@ function App() {
               {/* 考え中の表示 */}
               {shouldShowThinking() && (
                 <div className="message assistant">
-                  <div className="message-content">考え中…</div>
+                  <div className="message-content shimmer">考え中…</div>
                 </div>
               )}
 
